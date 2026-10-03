@@ -7,6 +7,8 @@ const filePath = path.join(__dirname, 'db.json');
 
 server.use(express.json());
 
+// services
+
 async function readData() {
     try {
         const data = await fs.readFile(filePath, 'utf8');
@@ -24,9 +26,27 @@ async function writeData(data) {
     }
 }
 
+async function getProducts() {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    return await readData();
+}
+
+async function getProductById(id) {
+    const products = await getProducts();
+    return products.find((prod) => prod.id == id);
+}
+
+// urls
+
 server.get('/', async (req, res) => {
     const data = await readData();
     res.json(data);
+});
+
+server.get('/:id', async (req, res) => {
+    const id = req.params.id;
+    const product = await getProductById(id);
+    res.json(product);
 });
 
 server.listen(3000, () => {
