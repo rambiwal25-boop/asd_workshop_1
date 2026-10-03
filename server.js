@@ -5,6 +5,12 @@ const server = express();
 
 const filePath = path.join(__dirname, 'db.json');
 
+const { cacheWare, invalidateCache } = require('./middleware/cache');
+
+// middleware
+server.use(cacheWare);
+server.use(invalidateCache);
+
 server.use(express.json());
 
 // services
@@ -47,6 +53,34 @@ async function createProduct(productData) {
     return newProduct;
 }
 
+async function updateProduct(id, productData, isPatch = false) {
+    const products = await readFile();
+    const index = products.findIndex((prod) => prod.id == id);
+    
+    if (index === -1) return null;
+
+    if (isPatch) {
+
+        products[index] = { ...products[index], ...productData };
+    } else {
+
+        products[index] = { id: Number(id), ...productData };
+    }
+    await writeFile(products);
+    return products[index];
+}
+
+async function deleteProduct(id) {
+    const products = await readFile();
+    const index = products.findIndex((prod) => prod.id == id);
+    
+    if (index === -1) return false;
+
+    products.splice(index, 1); 
+    await writeFile(products);
+    return true;
+}
+
 
 // urls
 
@@ -66,6 +100,43 @@ server.post('/', async (req, res) => {
     const newProduct = await createProduct(productData);
     res.status(201).json(newProduct);
 });
+
+server.put('/:id', async (req, res) => {
+    const id = req.params.id;
+    const productData = req.body;
+    const updatedProduct = await updateProduct(id, productData, false);
+    
+    if (updatedProduct) {
+        res.json(updatedProduct);
+    } else {
+        res.status(404).json({ message: 'Product not found' });
+    }
+});
+
+server.patch('/:id', async (req, res) => {
+    const id = req.params.id;
+    const productData = req.body;
+    const updatedProduct = await updateProduct(id, productData, true);
+    
+    if (updatedProduct) {
+        res.json(updatedProduct);
+    } else {
+        res.status(404).json({ message: 'Product not found' });
+    }
+});
+
+server.delete('/:id', async (req, res) => {
+    const id = req.params.id;
+    const success = await deleteProduct(id);
+    
+    if (success) {
+        res.status(204).send();
+    } else {
+        res.status(404).json({ message: 'Product not found' });
+    }
+});
+
+// Running the server
 
 server.listen(3000, () => {
     console.log('Server is running on port 3000');
