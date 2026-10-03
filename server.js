@@ -36,6 +36,18 @@ async function getProductById(id) {
     return products.find((prod) => prod.id == id);
 }
 
+async function createProduct(productData) {
+    const products = await readData();
+
+    const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+    const newProduct = { id: newId, ...productData };
+    
+    products.push(newProduct);
+    await writeData(products);
+    return newProduct;
+}
+
+
 // urls
 
 server.get('/', async (req, res) => {
@@ -47,6 +59,12 @@ server.get('/:id', async (req, res) => {
     const id = req.params.id;
     const product = await getProductById(id);
     res.json(product);
+});
+
+server.post('/', async (req, res) => {
+    const productData = req.body;
+    const newProduct = await createProduct(productData);
+    res.status(201).json(newProduct);
 });
 
 server.listen(3000, () => {
